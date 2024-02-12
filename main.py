@@ -397,3 +397,30 @@ import matplotlib.pyplot as plt
 plt.figure()
 plt.imshow(image)
 from skimage.measure import label, regionprops
+
+
+def predict(model, image, thresh, mode):
+    input_shape = model.input_shape[1:]  # get input shape
+    img_shape = image.shape  # get image shape
+    img2predict = cv2.resize(image, input_shape[:2])
+    pred = model.predict(img2predict.reshape((1,) + input_shape) / 255)
+    pred = (pred[0, :, :, 1] > thresh) * 255  # get prediction according to threshold
+    pred = cv2.resize(pred, (img_shape[1], img_shape[0]), interpolation=cv2.INTER_NEAREST)  # resize mask
+    plt.figure(figsize=(16, 8))
+
+    if mode == "mask":
+        plt.subplot(1, 2, 1, title="Image")
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        plt.subplot(1, 2, 2, title="Predicted mask")
+        plt.imshow(pred, cmap="gray")
+
+    if mode == "bbox":
+        bboxes = regionprops(label(pred))  # get list of objects
+        image1 = image.copy()  # copy image to draw bboxes
+        for bbox in bboxes:
+            y1, x1, y2, x2 = bbox.bbox
+            image1 = cv2.rectangle(image1, (x1, y1), (x2, y2), (255, 0, 0), 1)  # draw rectangle
+        plt.imshow(cv2.cvtColor(image1, cv2.COLOR_BGR2RGB))
+        plt.title("Predicted objects")
+
+predict(deeplab, image, 0.5, mode="mask")
