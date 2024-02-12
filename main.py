@@ -150,3 +150,78 @@ def ResNet50(input_shape, refinenet=False, deeplab=False):
     out.append(x)
 
     return Model(img_input, out)
+
+def conv_block_DSPP(input, n_filters=256, kernel_size=3, dilation_rate=1):
+    """
+    Convolutional block - part of Dilated Spatial Pyramid Pooling module.
+    # Arguments:
+    input: Keras tensor
+        Tensor from previous layer
+    n_filters: int, optional
+        Channel number of output feature map
+    kernel_size: int, optional
+        Size of convolutional kernel
+    dilation_rate: int, optional
+        Dilation rate used only in DSPP block
+    # Returns:
+        Keras tensor output of conv block
+    """
+    x = Conv2D(n_filters, kernel_size, dilation_rate=dilation_rate,
+        padding="same", use_bias=False)(input)
+    x = BatchNormalization()(x)
+    return Activation('relu')(x)
+
+
+def DSPP(input):
+    """"
+    Dilated Spatial Pyramid Pooling module (DSPP) - part of DeepLabv3
+    # Arguments:
+    input: Keras tensor
+        Tensor from previous layer
+    # Returns:
+        Keras tensor output of DSPP block
+    """
+    input_shape = input.shape
+    x = AveragePooling2D(pool_size=(input_shape[-3], input_shape[-2]))(input)
+    x = conv_block_DSPP(x, kernel_size=1)
+    out_pool = UpSampling2D(size=(input_shape[-3] // x.shape[1], input_shape[-2] // x.shape[2]),
+        interpolation="bilinear")(x)
+    out_1 = conv_block_DSPP(input, kernel_size=1, dilation_rate=1)
+    out_6 = conv_block_DSPP(input, kernel_size=3, dilation_rate=6)
+    out_12 = conv_block_DSPP(input, kernel_size=3, dilation_rate=12)
+    out_18 = conv_block_DSPP(input, kernel_size=3, dilation_rate=18)
+
+    x = concatenate([out_pool, out_1, out_6, out_12, out_18])
+    return conv_block_DSPP(x, kernel_size=1)
+
+
+def DeepLabV3(input_shape, nb_classes):
+    """
+    Build DeepLabV3+ semantic segmentation model with ResNet50 as backbone
+    # Arguments:
+    input_shape: tuple
+        Tuple of input image shape (width, height, number_of_channels)
+    nb_classes: int
+        Number of classes used in segmentation data
+    # Returns:
+        Tensorflow.keras.Model of DeepLabV3
+    """
+    res = ResNet50(input_shape, deeplab=True)  # backbone model
+    input = res.input  # get input
+    res_outs = res.output  # get ResNet50 outputs
+    x = res_outs[1]  # main output W // 32, H // 32
+    x = DSPP(x)  # build DSPP block
+
+    x = UpSampling2D(size=(input_shape[0] / 4 // x.shape[1], input_shape[1] / 4 // x.shape[2]),
+        interpolation="bilinear")(x)  # upsample by 4
+    y = res_outs[0]  # get output of W // 4, H // 4
+    y = conv_block_DSPP(y, kernel_size=1)
+    x = concatenate([x, y])  # concat 2 feature maps
+    x = conv_block_DSPP(x)
+    x = conv_block_DSPP(x)
+    x = UpSampling2D(size=(input_shape[0] // x.shape[1], input_shape[1] // x.shape[2]),
+        interpolation="bilinear")(x)  # upsample to original shape
+
+    x = Conv2D(nb_classes, 1, padding="same")(x)  # build output feature map and apply activation
+    x = Activation('softmax')(x)
+    return Model(input, x)
