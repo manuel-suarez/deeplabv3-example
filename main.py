@@ -424,3 +424,10 @@ def predict(model, image, thresh, mode):
         plt.title("Predicted objects")
 
 predict(deeplab, image, 0.5, mode="mask")
+print(history.history['loss'])
+import pickle
+f = open("deeplab.pkl","wb")
+pickle.dump(history.history,f)
+
+# close file
+f.close()
