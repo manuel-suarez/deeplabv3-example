@@ -390,3 +390,10 @@ callbacks_list = [checkpoint]
 # Train model
 history = deeplab.fit(train_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=EPOCHS,
                         validation_data = val_gen, callbacks=callbacks_list)
+
+img_path = "/kaggle/input/aerial/images/HELICOPTER_000834.png"
+image = cv2.imread(img_path)
+import matplotlib.pyplot as plt
+plt.figure()
+plt.imshow(image)
+from skimage.measure import label, regionprops
