@@ -340,3 +340,53 @@ def focal_loss(y_true, y_pred):
     # return K.sum(loss, axis=1)
     f_loss = tf.math.reduce_sum(loss, axis=1)
     return f_loss
+
+# Model params
+INPUT_SHAPE = (512, 512, 3)
+BATCH_SIZE = 4
+EPOCHS = 20
+STEPS_PER_EPOCH = 1000
+N_CLASSES = 2
+
+# UAV Dataset pathes
+IMAGE_PATH_UAV = "/kaggle/input/drone-detection-dataset/crops_with_target/crops_with_target"
+MASK_PATH_UAV = "/kaggle/input/drone-detection-dataset/masks_with_target/masks_with_target"
+
+IMAGE_PATH_ALL = "/kaggle/input/drone-detection-dataset/images_cropped/images_cropped"
+MASK_PATH_ALL = "/kaggle/input/drone-detection-dataset/masks_cropped/masks_cropped"
+
+# AERIAL Dataset pathes
+IMAGE_PATH_AERIAL = "/kaggle/input/aerial/images"
+MASK_PATH_AERIAL = "/kaggle/input/aerial/masks"
+
+# Weight path
+WEIGTH_PATH = ""
+
+# Build model
+deeplab = DeepLabV3(INPUT_SHAPE, N_CLASSES)
+
+# Set train and validation generators
+#train_pairs, val_pairs = get_pairs_from_paths_UAV(IMAGE_PATH_UAV, MASK_PATH_UAV,
+                                                 # IMAGE_PATH_ALL, MASK_PATH_ALL)
+train_pairs, val_pairs = get_pairs_from_paths_AERIAL(IMAGE_PATH_AERIAL, MASK_PATH_AERIAL)
+train_pairs_UAV, val_pairs_UAV = get_pairs_from_paths_UAV(IMAGE_PATH_UAV, MASK_PATH_UAV,
+                                                 IMAGE_PATH_ALL, MASK_PATH_ALL)
+train_pairs = train_pairs + train_pairs_UAV
+val_pairs = val_pairs + val_pairs_UAV
+train_gen = DataGenerator(train_pairs, INPUT_SHAPE[:2], N_CLASSES, STEPS_PER_EPOCH, BATCH_SIZE)
+val_gen = DataGenerator(val_pairs, INPUT_SHAPE[:2], N_CLASSES, 400, BATCH_SIZE)
+
+# Compile model and load weights
+deeplab.compile(loss=focal_loss,
+            optimizer="adam",
+            metrics=[Precision(class_id = 1), Recall(class_id = 1)])
+
+#deeplab.load_weights(WEIGTH_PATH)
+
+CHECKPOINT_PATH = "/kaggle/working/DEEPLAB-AERIAL-UAV-FCE-{epoch:02d}.h5"
+checkpoint = ModelCheckpoint(CHECKPOINT_PATH, save_weights_only=True, verbose=1, period=5)
+callbacks_list = [checkpoint]
+
+# Train model
+history = deeplab.fit(train_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=EPOCHS,
+                        validation_data = val_gen, callbacks=callbacks_list)
