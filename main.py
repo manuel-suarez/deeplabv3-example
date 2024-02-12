@@ -349,16 +349,20 @@ EPOCHS = 20
 STEPS_PER_EPOCH = 1000
 N_CLASSES = 2
 
+# Base DIR
+home_dir = os.path.expanduser('~')
+data_dir = os.path.join(home_dir, 'data')
+base_dir = os.path.join(data_dir, 'drone-detection-dataset')
 # UAV Dataset pathes
-IMAGE_PATH_UAV = "/kaggle/input/drone-detection-dataset/crops_with_target/crops_with_target"
-MASK_PATH_UAV = "/kaggle/input/drone-detection-dataset/masks_with_target/masks_with_target"
+IMAGE_PATH_UAV = os.path.join(base_dir, "crops_with_target/crops_with_target")
+MASK_PATH_UAV = os.path.join(base_dir, "masks_with_target/masks_with_target")
 
-IMAGE_PATH_ALL = "/kaggle/input/drone-detection-dataset/images_cropped/images_cropped"
-MASK_PATH_ALL = "/kaggle/input/drone-detection-dataset/masks_cropped/masks_cropped"
+IMAGE_PATH_ALL = os.path.join(base_dir, "images_cropped/images_cropped")
+MASK_PATH_ALL = os.path.join(base_dir, "masks_cropped/masks_cropped")
 
 # AERIAL Dataset pathes
-IMAGE_PATH_AERIAL = "/kaggle/input/aerial/images"
-MASK_PATH_AERIAL = "/kaggle/input/aerial/masks"
+IMAGE_PATH_AERIAL = os.path.join(base_dir, "aerial/images")
+MASK_PATH_AERIAL = os.path.join(base_dir, "aerial/masks")
 
 # Weight path
 WEIGTH_PATH = ""
@@ -384,7 +388,7 @@ deeplab.compile(loss=focal_loss,
 
 #deeplab.load_weights(WEIGTH_PATH)
 
-CHECKPOINT_PATH = "/kaggle/working/DEEPLAB-AERIAL-UAV-FCE-{epoch:02d}.h5"
+CHECKPOINT_PATH = "working/DEEPLAB-AERIAL-UAV-FCE-{epoch:02d}.h5"
 checkpoint = ModelCheckpoint(CHECKPOINT_PATH, save_weights_only=True, verbose=1, period=5)
 callbacks_list = [checkpoint]
 
@@ -392,7 +396,7 @@ callbacks_list = [checkpoint]
 history = deeplab.fit(train_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=EPOCHS,
                         validation_data = val_gen, callbacks=callbacks_list)
 
-img_path = "/kaggle/input/aerial/images/HELICOPTER_000834.png"
+img_path = os.path.join(base_dir, "aerial/images/HELICOPTER_000834.png")
 image = cv2.imread(img_path)
 import matplotlib.pyplot as plt
 plt.figure()
