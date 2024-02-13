@@ -397,7 +397,7 @@ callbacks_list = [checkpoint]
 history = deeplab.fit(train_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=EPOCHS,
                         validation_data = val_gen, callbacks=callbacks_list)
 
-img_path = os.path.join(aerial_dir, "images/HELICOPTER_000834.png")
+img_path = os.path.join(aerial_dir, "images/HELICOPTER_000837.png")
 image = cv2.imread(img_path)
 import matplotlib.pyplot as plt
 plt.figure()
